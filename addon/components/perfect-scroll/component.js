@@ -2,14 +2,10 @@ import Ember from 'ember';
 import layout from './template';
 
 const {
-  $,
   get,
   set,
   run,
   isPresent,
-  computed,
-  isEmpty,
-  guidFor
 } = Ember;
 
 // Perfect Scrollbar scroll events
@@ -42,6 +38,8 @@ const psEventsScrollValueTypeMapping = {
 
 export default Ember.Component.extend({
 
+  classNames: "ps-content",
+
   layout: layout,
 
   // Internal id for element
@@ -71,13 +69,11 @@ export default Ember.Component.extend({
     this._super(...arguments);
 
     run.schedule('afterRender', () => {
-      let element = this.getElementForPs();
-
-      this.set('_perfectScrollbar', new window.PerfectScrollbar(element, this._getOptions()));
+      this.set('_perfectScrollbar', new window.PerfectScrollbar(this.element, this._getOptions()));
 
       // reflect initial scrollLeft and scrollTop positions to the element
-      element.scrollLeft = this.get('scrollLeft');
-      element.scrollTop = this.get('scrollTop');
+      this.element.scrollLeft = this.get('scrollLeft');
+      this.element.scrollTop = this.get('scrollTop');
 
       this.bindEvents();
       this.triggerLifeCycleAction('initialized');
@@ -100,22 +96,8 @@ export default Ember.Component.extend({
 
   triggerLifeCycleAction(eventName) {
     let lifeCycleEventOccurred = this.get('lifeCycleEventOccurred') || function(){};
-    lifeCycleEventOccurred(this.get('_perfectScrollbar'), eventName);
+    lifeCycleEventOccurred(this.get('scrollId'), this.get('_perfectScrollbar'), eventName);
   },
-
-  getElementForPs() {
-    return document.getElementById(get(this, 'eId'));
-  },
-
-  eId: computed('scrollId', {
-    get() {
-      if (isEmpty(get(this, 'scrollId'))) {
-        set(this, 'scrollId', `perfect-scroll-${guidFor(this)}`);
-      }
-
-      return get(this, 'scrollId');
-    }
-  }).readOnly(),
 
   /**
    * Binds perfect-scrollbar events to function
@@ -124,14 +106,13 @@ export default Ember.Component.extend({
   bindEvents() {
     let self = this;
     let mapping = {};
-    let el = this.getElementForPs();
 
     psEvents.map(evt => {
       mapping[evt] = function() {
-        self.callEvent(evt, get(el, psEventsScrollValueTypeMapping[evt]));
+        self.callEvent(evt, get(this.element, psEventsScrollValueTypeMapping[evt]));
       };
 
-      $(el).on(evt, mapping[evt].bind(this));
+      this.$().on(evt, mapping[evt].bind(this));
     });
 
     set(this, 'mapping', mapping);
@@ -153,10 +134,9 @@ export default Ember.Component.extend({
    */
   unbindEvents() {
     let mapping = get(this, 'mapping');
-    let el = $(document.getElementById(get(this, 'eId')));
 
     psEvents.map(evt => {
-      $(el).off(evt, run.cancel(this, mapping[evt].bind(this)));
+      this.$().off(evt, run.cancel(this, mapping[evt].bind(this)));
     });
   },
 

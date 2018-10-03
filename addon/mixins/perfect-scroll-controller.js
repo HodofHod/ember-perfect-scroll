@@ -21,7 +21,7 @@ export default Ember.Mixin.create({
       return this.get('perfectScrolls')[0];
     }
 
-    return this.get('perfectScrolls').filter(item=>get(item, 'element.id')===perfectScrollId)[0];
+    return this.get('perfectScrolls').filter(item=>get(item, 'scrollId')===perfectScrollId)[0];
   },
 
   updatePerfectScroll(perfectScrollId) {
