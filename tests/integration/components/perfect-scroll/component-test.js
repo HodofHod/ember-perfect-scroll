@@ -1,16 +1,16 @@
 import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 import PerfectScrollControllerMixin from 'ember-perfect-scroll/mixins/perfect-scroll-controller';
-import wait from 'ember-test-helpers/wait';
+import { settled } from 'ember-test-helpers'
 import Ember from 'ember';
 
-const {get, set} = Ember;
+const { get, set } = Ember;
 
 moduleForComponent('perfect-scroll', 'Integration | Component | perfect scroll', {
   integration: true
 });
 
-test('it renders with content "ps"', function(assert) {
+test('it renders with content "ps"', function (assert) {
   this.render(hbs`{{#perfect-scroll}}ps{{/perfect-scroll}}`);
   assert.equal(this.$().text().trim(), 'ps');
 });
@@ -38,12 +38,13 @@ test('it fires ps-scroll-y, ps-scroll-x, ps-scroll-up, ps-scroll-left, ps-y-reac
       <div class="content"></div>
     {{/perfect-scroll}}`);
 
-  let scrollElement = this.$('.ps-content');
   assert.expect(8);
 
-  return wait().then(()=> {
+  return settled().then(() => {
+    let scrollElement = this.$('.ps-content');
     scrollVertical(scrollElement, 0);
     scrollHorizontal(scrollElement, 0);
+    return settled()
   });
 });
 
@@ -69,12 +70,13 @@ test('it fires ps-scroll-y, ps-scroll-x, ps-scroll-down, ps-scroll-right, ps-y-r
       <div class="content"></div>
     {{/perfect-scroll}}`);
 
-  let scrollElement = this.$('.ps-content');
   assert.expect(6);
 
-  return wait().then(()=> {
+  return settled().then(() => {
+    let scrollElement = this.$('.ps-content');
     scrollVertical(scrollElement, 400);
     scrollHorizontal(scrollElement, 400);
+    return settled()
   });
 });
 
@@ -99,7 +101,9 @@ test("it scrolls programmatically via perfect-scroll-controller mixin", function
   // Perform scrolling
   this.performScroll(150, 200);
 
+
   let scrollElement = this.$('.ps-content');
+
   assert.equal(scrollElement.scrollLeft(), 150);
   assert.equal(scrollElement.scrollTop(), 200);
 });
@@ -179,7 +183,7 @@ test("it updates perfect scroll via perfect-scroll-controller mixin", function (
   // anyway from perfect-scrollbar
   assert.expect(2);
 
-  set(this.get('actions'), 'ps-y-reach-end', (scrollPosition)=>assert.equal(scrollPosition, 200, 'Container height ' +
+  set(this.get('actions'), 'ps-y-reach-end', (scrollPosition) => assert.equal(scrollPosition, 200, 'Container height ' +
     'change should have been reflected upon caliing updatePerfectScrollBar'));
 
   this.render(hbs`
@@ -196,16 +200,52 @@ test("it updates perfect scroll via perfect-scroll-controller mixin", function (
   content.height(200);
   this.updatePerfectScroll();
 
-  return wait();
+  return settled();
 });
 
+test("component and controller clean up after themselves", function (assert) {
+  /**
+   * Make test context have necessary action via applying mixin; since init of mixin will not be run; run the initialization
+   * method of mixin for array creation.
+   */
+  PerfectScrollControllerMixin.apply(this);
+  this.initializePerfecScrollArray();
+  
+  assert.expect(3);
+  
+  this.set("firstVisible", true);
+  this.render(hbs`
+    <style>
+      .ps-content { position:relative; margin:0px auto; padding:0px; width: 100px; height: 100px; overflow: auto}
+      .ps-content .content {width: 400px; height: 400px}
+    </style>
+    {{#if firstVisible}}
+      {{#perfect-scroll scrollId='first' lifeCycleEventOccurred=(action 'lifeCycleEventOccurred')}}
+        <div class="content"></div>
+      {{/perfect-scroll}}
+    {{/if}}
+    {{#perfect-scroll scrollId='second' scrollTop=20 scrollLeft=200 lifeCycleEventOccurred=(action 'lifeCycleEventOccurred')}}
+      <div class="content"></div>
+    {{/perfect-scroll}}`);
+
+  assert.equal(this.get('perfectScrolls').size, 2);
+
+  this.set("firstVisible", false);
+  
+  assert.equal(this.get('perfectScrolls').size, 1);
+  
+  this.clearRender()
+
+  assert.equal(this.get('perfectScrolls').size, 0);
+  return settled();
+});
 
 /**
  * Initializes event counts to 0 back again
  */
 function clearEventCounts(testContext) {
   set(testContext, 'eventCounts', {
-    'ps-scroll-y' : 0,
+    'ps-scroll-y': 0,
     'ps-scroll-x': 0,
     'ps-scroll-up': 0,
     'ps-scroll-down': 0,
@@ -227,10 +267,10 @@ function clearEventCounts(testContext) {
  * @param expectedScrollPositionValues, scroll position values expected to be received in order
  */
 function addHandlerForEvent(testContext, assert, eventName, expectedScrollPositionValues) {
-  testContext.on(eventName, (scrollPosition)=> {
-    let eventCount = get(testContext,`eventCounts.${eventName}`);
-    set(testContext, `eventCounts.${eventName}`, eventCount+1)
-    performAssertionForEvent(assert, scrollPosition, expectedScrollPositionValues[eventCount], eventName, eventCount+1);
+  testContext.on(eventName, (scrollPosition) => {
+    let eventCount = get(testContext, `eventCounts.${eventName}`);
+    set(testContext, `eventCounts.${eventName}`, eventCount + 1)
+    performAssertionForEvent(assert, scrollPosition, expectedScrollPositionValues[eventCount], eventName, eventCount + 1);
   });
 }
 

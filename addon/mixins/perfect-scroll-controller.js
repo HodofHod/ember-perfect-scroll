@@ -1,15 +1,16 @@
 import Ember from 'ember';
 
-const {get, isEmpty, isPresent} = Ember;
+const { get, isEmpty, isPresent } = Ember;
 
 export default Ember.Mixin.create({
   init() {
     this._super(...arguments);
+
     this.initializePerfecScrollArray();
   },
 
   initializePerfecScrollArray() {
-    this.set('perfectScrolls', Ember.A());
+    this.set('perfectScrolls', new Map());
   },
 
   getPerfectScroll(perfectScrollId) {
@@ -18,10 +19,10 @@ export default Ember.Mixin.create({
     }
 
     if (isEmpty(perfectScrollId)) {
-      return this.get('perfectScrolls')[0];
+      return this.get('perfectScrolls').values().next().value;
     }
 
-    return this.get('perfectScrolls').filter(item=>get(item, 'scrollId')===perfectScrollId)[0];
+    return this.get('perfectScrolls').get(perfectScrollId);
   },
 
   updatePerfectScroll(perfectScrollId) {
@@ -50,11 +51,11 @@ export default Ember.Mixin.create({
   },
 
   actions: {
-    lifeCycleEventOccurred(perfectScroll, eventName) {
+    lifeCycleEventOccurred(scrollId, perfectScroll, eventName) {
       if (eventName === 'initialized') {
-        get(this, 'perfectScrolls').pushObject(perfectScroll);
+        get(this, 'perfectScrolls').set(scrollId, perfectScroll);
       } else {
-        get(this, 'perfectScrolls').removeObject(perfectScroll);
+        get(this, 'perfectScrolls').delete(scrollId);
       }
     }
   }

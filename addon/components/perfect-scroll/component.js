@@ -6,6 +6,8 @@ const {
   set,
   run,
   isPresent,
+  isEmpty,
+  guidFor
 } = Ember;
 
 // Perfect Scrollbar scroll events
@@ -64,6 +66,15 @@ export default Ember.Component.extend({
   scrollYMarginOffset: 0,
   includePadding: false,
   theme: 'default',
+
+  init(){
+    this._super(...arguments);
+    
+    if (isEmpty(get(this, 'scrollId'))) {
+      this.set('scrollId', `perfect-scroll-${guidFor(this)}`)
+    }
+    this.set('elementId', this.get('scrollId'));
+  },
 
   didInsertElement() {
     this._super(...arguments);
